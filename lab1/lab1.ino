@@ -7,6 +7,13 @@
 // variable for pin connected to the button
 int button = 8;
 int buttonState = LOW;  // Begins not being pressed
+int lastButtonState = LOW;   // the previous reading from the input pin
+
+// the following variables are unsigned longs because the time, measured in
+// milliseconds, will quickly become a bigger number than can be stored in an int.
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
+
 
 // variables for LEDs
 int greenLED = 13;
@@ -23,7 +30,7 @@ int counter = 1;
 // Using this to keep track of time passed
 unsigned long previousMillis = 0;        // will store last time LED was updated
 
-const long interval = 200;           // interval at which to blink (milliseconds)
+const long interval = 1000;           // interval at which to blink (milliseconds)
 
 // If the full interval has occured, return true
 bool waitNoDelay(long millisToWait){
@@ -55,44 +62,62 @@ void setup() {
 
 // Main code here, to run repeatedly:
 void loop() {
-  buttonState = digitalRead(button);
-  // Check if button was pressed, update the mode counter
-  if (buttonState == HIGH) {
-      // If button was pushed, reset all LEDs (turned off between modes)
-      digitalWrite(greenLED, LOW);
-      digitalWrite(yellowLED, LOW);
-      digitalWrite(redLED, LOW);
-      digitalWrite(otherLED, LOW);
-
-      if (waitNoDelay(interval) == true) {
-        // Check if the last mode has been reached
-        if (counter >= numModes){
-          counter = 1;
-        }
-        // Increment the counter to move to the next mode
-        else {
-          counter++;
-        }
-      }
-  }
+  Debounce();
+  Serial.println(counter);
       
   // Check which mode we are in
     switch(counter){
+      
       case 1: // ALL ON
-              digitalWrite(greenLED, HIGH);
-              digitalWrite(yellowLED, HIGH);
-              digitalWrite(redLED, HIGH);
-              digitalWrite(otherLED, HIGH);  
+              AllOn();
               break;
-       case 2: // ALL OFF
-              digitalWrite(greenLED, LOW);
-              digitalWrite(yellowLED, LOW);
-              digitalWrite(redLED, LOW);
-              digitalWrite(otherLED, LOW);  
+              
+       case 2: // ALL OFF  
+              AllOff();
               break;
+              
        case 3: // ALL FLASHING
             // If the interval has been completed
-            if(waitNoDelay(interval)==true){ 
+              AllFlashing();
+              break;
+              
+       case 4: // ALL BOUNCING
+              // If one of the LEDs has been on for the full interval
+              AllBouncing();
+              break;
+              
+       case 5: // TWO ON, TWO OFF (SWITCHING)
+              TwoOnTwoOff();
+              break;
+              
+        case 6: // RANDOMLY TURN ON ALL THE LEDs (RANDOM SEQUENCE)
+              // If at least one LED has been on for the full interval, switch to a different LED
+              RandomOn();
+              break;
+    }
+}
+
+void AllOn()
+{
+   digitalWrite(greenLED, HIGH);
+   digitalWrite(yellowLED, HIGH);
+   digitalWrite(redLED, HIGH);
+   digitalWrite(otherLED, HIGH);  
+}
+
+
+void AllOff()
+{
+   digitalWrite(greenLED, LOW);
+   digitalWrite(yellowLED, LOW);
+   digitalWrite(redLED, LOW);
+   digitalWrite(otherLED, LOW);
+}
+
+
+void AllFlashing()
+{
+if(waitNoDelay(interval)==true){ 
               // If the LEDs have been OFF for the full interval, turn them ON
               if (digitalRead(greenLED) == LOW){  // Can just check one LED b/c they're all doing the same thing
                 //Turn on all LEDS
@@ -109,10 +134,11 @@ void loop() {
                 digitalWrite(otherLED, LOW);
               }
             }
-              break;
-       case 4: // ALL BOUNCING
-              // If one of the LEDs has been on for the full interval
-              if(waitNoDelay(interval)==true){
+  }
+
+ void AllBouncing()
+ {
+      if(waitNoDelay(interval)==true){
                 // Green LED was on for full interval
                 if(digitalRead(greenLED) == HIGH){
                   digitalWrite(greenLED, LOW);       // Green off             
@@ -134,9 +160,11 @@ void loop() {
                   digitalWrite(greenLED, HIGH);   // Red on
                 }
               }
-              break;
-       case 5: // TWO ON, TWO OFF (SWITCHING)
-            if(waitNoDelay(interval)==true){ 
+ }
+
+ void TwoOnTwoOff()
+ {
+   if(waitNoDelay(interval)==true){ 
               // If the LEDs have been OFF for the full interval, turn them ON
                 if (digitalRead(greenLED) == LOW){  // Can just check one LED b/c they're all doing the same thing
                   //Turn on all LEDS
@@ -153,11 +181,11 @@ void loop() {
                   digitalWrite(otherLED, HIGH);
                 }
             }
+ }
 
-              break;
-        case 6: // RANDOMLY TURN ON ALL THE LEDs (RANDOM SEQUENCE)
-              // If at least one LED has been on for the full interval, switch to a different LED
-              if(waitNoDelay(interval)==true){
+ void RandomOn()
+ {
+  if(waitNoDelay(interval)==true){
                 // If all the LEDs are on already, then reset
                 if((digitalRead(greenLED) == HIGH)&&(digitalRead(yellowLED) == HIGH)&&(digitalRead(redLED) == HIGH)&&(digitalRead(otherLED) == HIGH)){
                   digitalWrite(greenLED, LOW);
@@ -169,7 +197,49 @@ void loop() {
                   digitalWrite(random(10, 14), HIGH);   // Provide power to a random pin (with an LED)
                   }   
               }
-              break;
+ }
+
+ void Debounce(){
+    // read the state of the switch into a local variable:
+    int reading = digitalRead(button);
+  
+    // check to see if you just pressed the button
+    // (i.e. the input went from LOW to HIGH), and you've waited long enough
+    // since the last press to ignore any noise:
+  
+    // If the switch changed, due to noise or pressing:
+    if (reading != lastButtonState) {
+      // reset the debouncing timer
+      lastDebounceTime = millis();
     }
-}
+  
+    if ((millis() - lastDebounceTime) > debounceDelay) {
+      // whatever the reading is at, it's been there for longer than the debounce
+      // delay, so take it as the actual current state:
+  
+      // if the button state has changed:
+      if (reading != buttonState) {
+        buttonState = reading;
+  
+        // only toggle the LED if the new button state is HIGH
+        if (buttonState == HIGH) {
+          digitalWrite(greenLED, LOW);
+          digitalWrite(yellowLED, LOW);
+          digitalWrite(redLED, LOW);
+          digitalWrite(otherLED, LOW);
+         // Check if the last mode has been reached
+        if (counter >= numModes){
+          counter = 1;
+        }
+        // Increment the counter to move to the next mode
+        else {
+          counter++;
+        }
+         }
+      }
+    }
+  
+    // save the reading. Next time through the loop, it'll be the lastButtonState:
+    lastButtonState = reading;
+ }
 
