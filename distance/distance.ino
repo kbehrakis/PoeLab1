@@ -48,7 +48,7 @@ void loop()
       distance = irSensor.getDistanceCentimeter();
       Serial.print("\nDistance in centimeters: ");
       Serial.print(distance);  
-      if(distance>20 && distance<=46){
+      if(distance>=20 && distance<=46){
         AllFlashing(200);
       }
       else if(distance>46 && distance<=72){
