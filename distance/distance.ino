@@ -44,33 +44,33 @@ void setup()
 
 void loop()
 {
-  if(waitNoDelay(50)==true){
       distance = irSensor.getDistanceCentimeter();
       Serial.print("\nDistance in centimeters: ");
       Serial.print(distance);  
-      if(distance>=20 && distance<=46){
-        AllFlashing(200);
+      if(distance<=30){
+        Serial.print("in small distance");
+        AllFlashing(50);
       }
-      else if(distance>46 && distance<=72){
-        AllFlashing(400);
-      }
-      else if(distance>72 && distance<=98){
-        AllFlashing(600);
-      }
-      else if(distance>98 && distance<=124){
-        AllFlashing(800);
-      }
-      else if(distance>124 && distance<=150){
+      else if(distance>30 && distance<=40){
         AllFlashing(1000);
       }
-  }
+      else if(distance>40 && distance<=50){
+        AllFlashing(2000);
+      }
+      else if(distance>50 && distance<=60){
+        AllFlashing(3000);
+      }
+      else if(distance>60){
+        AllFlashing(4000);
+      }
 }
 
 void AllFlashing(long myInterval)
 {
-if(waitNoDelay(myInterval)==true){ 
+        if(waitNoDelay(myInterval)==true){ 
               // If the LEDs have been OFF for the full interval, turn them ON
               if (digitalRead(greenLED) == LOW){  // Can just check one LED b/c they're all doing the same thing
+                Serial.print("hiya");
                 //Turn on all LEDS
                 digitalWrite(greenLED, HIGH);
                 digitalWrite(yellowLED, HIGH);
@@ -78,6 +78,7 @@ if(waitNoDelay(myInterval)==true){
                 digitalWrite(otherLED, HIGH); 
               }
               else{
+                Serial.print("why why why");
                  // If the LEDs have been ON for the full interval, turn them OFF 
                 digitalWrite(greenLED, LOW);
                 digitalWrite(yellowLED, LOW);
